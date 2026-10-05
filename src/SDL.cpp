@@ -78,10 +78,7 @@ SDL::SDL(Resources *resources, Game::GameState *gameState)
     MIX_PlayTrack(mResources->musicTrack, 0);
 }
 
-bool SDL::pollEvent(SDL_Event &event)
-{
-    return SDL_PollEvent(&event);
-}
+bool SDL::pollEvent(SDL_Event &event) { return SDL_PollEvent(&event); }
 
 void SDL::draw(float deltaTime, float playerVelocityX, int tileSize)
 {

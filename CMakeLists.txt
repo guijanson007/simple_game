@@ -1,39 +1,34 @@
 cmake_minimum_required(VERSION 4.3)
 
-project(simple_game)
+project(simple_game LANGUAGES CXX)
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(SDL3 REQUIRED)
 find_package(SDL3_image REQUIRED)
 find_package(SDL3_mixer REQUIRED)
 find_package(glm REQUIRED)
 
-add_executable(
-  simple_game
-  main.cpp
-  SDL.cpp
-  resources.cpp
-  game.cpp
-  map.cpp
+set(CMAKE_CXX_STANDARD 20)
+
+file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+add_executable(simple_game ${SOURCES})
+
+target_compile_definitions(
+  "${CMAKE_PROJECT_NAME}"
+  PUBLIC DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}/data/"
 )
 
-if(CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET simple_game PROPERTY CXX_STANDARD 20)
-endif()
-
-set_target_properties(simple_game PROPERTIES
-CXX_STANDARD 20
-CXX_STANDARD_REQUIRED ON
-CXX_EXTENSIONS OFF
+target_include_directories(
+  simple_game PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/"
+    ${SDL3_INCLUDE_DIRS}
+    ${SDL3_IMAGE_INCLUDE_DIRS}
+    ${SDL3_MIXER_INCLUDE_DIRS}
+    ${GLM_INCLUDE_DIRS}
 )
-
-# Help the program find the data files (images, sounds, etc.) at runtime
-add_custom_command(TARGET simple_game POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/data $<TARGET_FILE_DIR:simple_game>/data)
-
-set_target_properties(
-  simple_game PROPERTIES
-    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/data")
 
 target_link_libraries(
   simple_game PRIVATE

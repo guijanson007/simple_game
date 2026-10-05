@@ -32,32 +32,32 @@ void Resources::loadResources(SDL_Renderer &renderer)
     enemyAnims[ANIM_ENEMY_HIT] = Animation(8, 1.0f);
     enemyAnims[ANIM_ENEMY_DIE] = Animation(18, 2.0f);
 
-    texIdle = loadTexture("data/idle.png", renderer);
-    texRun = loadTexture("data/run.png", renderer);
-    texSlide = loadTexture("data/slide.png", renderer);
-    texBrick = loadTexture("data/tiles/brick.png", renderer);
-    texGrass = loadTexture("data/tiles/grass.png", renderer);
-    texGround = loadTexture("data/tiles/ground.png", renderer);
-    texPanel = loadTexture("data/tiles/panel.png", renderer);
-    texBg1 = loadTexture("data/bg/bg_layer1.png", renderer);
-    texBg2 = loadTexture("data/bg/bg_layer2.png", renderer);
-    texBg3 = loadTexture("data/bg/bg_layer3.png", renderer);
-    texBg4 = loadTexture("data/bg/bg_layer4.png", renderer);
-    texBullet = loadTexture("data/bullet.png", renderer);
-    texBulletHit = loadTexture("data/bullet_hit.png", renderer);
-    texShoot = loadTexture("data/shoot.png", renderer);
-    texRunShoot = loadTexture("data/shoot_run.png", renderer);
-    texSlideShoot = loadTexture("data/slide_shoot.png", renderer);
-    texEnemy = loadTexture("data/enemy.png", renderer);
-    texEnemyHit = loadTexture("data/enemy_hit.png", renderer);
-    texEnemyDie = loadTexture("data/enemy_die.png", renderer);
+    texIdle = loadTexture(DATA_PATH "/idle.png", renderer);
+    texRun = loadTexture(DATA_PATH "/run.png", renderer);
+    texSlide = loadTexture(DATA_PATH "/slide.png", renderer);
+    texBrick = loadTexture(DATA_PATH "/tiles/brick.png", renderer);
+    texGrass = loadTexture(DATA_PATH "/tiles/grass.png", renderer);
+    texGround = loadTexture(DATA_PATH "/tiles/ground.png", renderer);
+    texPanel = loadTexture(DATA_PATH "/tiles/panel.png", renderer);
+    texBg1 = loadTexture(DATA_PATH "/bg/bg_layer1.png", renderer);
+    texBg2 = loadTexture(DATA_PATH "/bg/bg_layer2.png", renderer);
+    texBg3 = loadTexture(DATA_PATH "/bg/bg_layer3.png", renderer);
+    texBg4 = loadTexture(DATA_PATH "/bg/bg_layer4.png", renderer);
+    texBullet = loadTexture(DATA_PATH "/bullet.png", renderer);
+    texBulletHit = loadTexture(DATA_PATH "/bullet_hit.png", renderer);
+    texShoot = loadTexture(DATA_PATH "/shoot.png", renderer);
+    texRunShoot = loadTexture(DATA_PATH "/shoot_run.png", renderer);
+    texSlideShoot = loadTexture(DATA_PATH "/slide_shoot.png", renderer);
+    texEnemy = loadTexture(DATA_PATH "/enemy.png", renderer);
+    texEnemyHit = loadTexture(DATA_PATH "/enemy_hit.png", renderer);
+    texEnemyDie = loadTexture(DATA_PATH "/enemy_die.png", renderer);
 
-    chunkShoot = loadAudio("data/audio/shoot.wav");
-    chunkShootHit = loadAudio("data/audio/wall_hit.wav");
-    chunkEnemyHit = loadAudio("data/audio/enemy_hit.wav");
+    chunkShoot = loadAudio(DATA_PATH "/audio/shoot.wav");
+    chunkShootHit = loadAudio(DATA_PATH "/audio/wall_hit.wav");
+    chunkEnemyHit = loadAudio(DATA_PATH "/audio/enemy_hit.wav");
 
     musicMain = loadAudio(
-        "data/audio/Juhani Junkala [Retro Game Music Pack] Level 1.mp3");
+        DATA_PATH "/audio/Juhani Junkala [Retro Game Music Pack] Level 1.mp3");
     musicTrack = MIX_CreateTrack(mixer);
     MIX_SetTrackAudio(musicTrack, musicMain);
     MIX_SetTrackLoops(musicTrack, -1);

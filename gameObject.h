@@ -1,0 +1,119 @@
+#pragma once
+
+#include "animation.h"
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_render.h>
+#include <glm/glm.hpp>
+#include <vector>
+
+namespace Game
+{
+enum class PlayerState
+{
+    idle,
+    running,
+    jumping
+};
+
+enum class BulletState
+{
+    moving,
+    colliding,
+    inactive
+};
+
+enum class EnemyState
+{
+    shambling,
+    damaged,
+    dead
+};
+
+struct PlayerData
+{
+    PlayerState state;
+    Timer weaponTimer;
+    PlayerData()
+        : weaponTimer(0.1f)
+    {
+        state = PlayerState::idle;
+    }
+};
+
+struct LevelData
+{
+};
+
+struct EnemyData
+{
+    EnemyState state;
+    Timer damagedTimer;
+    int healthPoints;
+    EnemyData()
+        : state{EnemyState::shambling},
+          damagedTimer{0.5f},
+          healthPoints{100}
+    {
+    }
+};
+
+struct BulletData
+{
+    BulletState state;
+
+    BulletData()
+        : state(BulletState::moving)
+    {
+    }
+};
+
+union ObjectData
+{
+    PlayerData player;
+    LevelData level;
+    EnemyData enemy;
+    BulletData bullet;
+};
+
+enum class ObjectType
+{
+    player,
+    level,
+    enemy,
+    bullet
+};
+
+struct GameObject
+{
+    ObjectType type;
+    ObjectData data;
+    glm::vec2 position, velocity, acceleration;
+    float direction;
+    float maxSpeedX;
+    std::vector<Animation> animations;
+    int currentAnimation;
+    SDL_Texture *texture;
+    bool dynamic = false;
+    bool grounded = false;
+    SDL_FRect collider;
+    Timer flashTimer;
+    bool shouldFlash = false;
+    int spriteFrame;
+
+    GameObject()
+        : data{.level = LevelData()},
+          collider{0},
+          flashTimer{0.05f}
+    {
+        type = ObjectType::level;
+        direction = 1;
+        maxSpeedX = 0;
+        position = velocity = acceleration = glm::vec2(0);
+        currentAnimation = -1;
+        dynamic = false;
+        grounded = false;
+        shouldFlash = false;
+        spriteFrame = 1;
+    }
+};
+} // namespace Game

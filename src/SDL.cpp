@@ -98,11 +98,11 @@ Event SDL::pollEvent()
             break;
         case SDL_EVENT_KEY_DOWN:
             event.type = EventType::KeyDown;
-            event.key.scancode = sdlEvent.key.scancode;
+            event.key.scancode = keyInputFromSDLScancode(sdlEvent.key.scancode);
             break;
         case SDL_EVENT_KEY_UP:
             event.type = EventType::KeyUp;
-            event.key.scancode = sdlEvent.key.scancode;
+            event.key.scancode = keyInputFromSDLScancode(sdlEvent.key.scancode);
             break;
         default:
             event.type = EventType::NoEvent;

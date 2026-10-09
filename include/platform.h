@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SDL_API.h"
-
+#include <stdexcept>
 #include <utility>
 
 struct RectF
@@ -53,6 +53,25 @@ struct RectF
     SDL_FRect toSDLFRect() const { return SDL_FRect{x, y, w, h}; }
 };
 
+enum class KeyInput
+{
+    Left,
+    Right,
+    Jump,
+    Shoot,
+    ToggleFullscreen,
+    Escape,
+    None
+};
+
+struct InputState
+{
+    bool left = false;
+    bool right = false;
+    bool jump = false;
+    bool shoot = false;
+};
+
 enum class EventType
 {
     KeyDown,
@@ -69,7 +88,7 @@ struct Event
     {
         struct
         {
-            SDL_Scancode scancode;
+            KeyInput scancode;
         } key;
         std::pair<int, int> window;
     };
@@ -116,24 +135,6 @@ enum class TextureId
     Enemy,
     EnemyHit,
     EnemyDie
-};
-
-enum class Key
-{
-    Left,
-    Right,
-    Jump,
-    Shoot,
-    ToggleFullscreen,
-    Escape
-};
-
-struct InputState
-{
-    bool left = false;
-    bool right = false;
-    bool jump = false;
-    bool shoot = false;
 };
 
 class Platform

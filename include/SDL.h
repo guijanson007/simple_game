@@ -21,6 +21,33 @@ struct Resources;
 
 namespace SDL
 {
+
+// clang-format off
+inline KeyInput keyInputFromSDLScancode(SDL_Scancode scancode) {
+    switch (scancode) {
+        case SDL_SCANCODE_LEFT:  case SDL_SCANCODE_A:     return KeyInput::Left;
+        case SDL_SCANCODE_RIGHT: case SDL_SCANCODE_D:     return KeyInput::Right;
+        case SDL_SCANCODE_SPACE:                          return KeyInput::Jump;
+        case SDL_SCANCODE_J:                              return KeyInput::Shoot;
+        case SDL_SCANCODE_F:                              return KeyInput::ToggleFullscreen;
+        case SDL_SCANCODE_ESCAPE:                         return KeyInput::Escape;
+        default:                                          return KeyInput::None;
+    }
+}
+
+inline SDL_Scancode scancodeFromKeyInput(KeyInput key) {
+    switch (key) {
+        case KeyInput::Left:             return SDL_SCANCODE_A;
+        case KeyInput::Right:            return SDL_SCANCODE_D;
+        case KeyInput::Jump:             return SDL_SCANCODE_SPACE;
+        case KeyInput::Shoot:            return SDL_SCANCODE_J;
+        case KeyInput::ToggleFullscreen: return SDL_SCANCODE_F;
+        case KeyInput::Escape:           return SDL_SCANCODE_ESCAPE;
+        default:                         return SDL_SCANCODE_UNKNOWN;
+    }
+}
+//clang-format on
+
 struct Window
 {
     std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)> sdlWindow;
@@ -123,9 +150,10 @@ class SDL //: public Platform
 
     [[nodiscard]] Window &getWindow() const { return *mWindow; }
 
-    [[nodiscard]] bool isKeyPressed(SDL_Scancode key) const
+    [[nodiscard]] bool isKeyPressed(KeyInput key) const
     {
-        return mKeys[key];
+        SDL_Scancode sdlKey = scancodeFromKeyInput(key);
+        return mKeys[sdlKey] != 0;
     }
 
   private:

@@ -43,7 +43,7 @@ class Game
     void iterate();
     void update(GameObject &obj, float deltaTime);
     void handleEvent(const Event &event);
-    void handleKeyInput(SDL_Scancode key, bool keyDown, GameObject &obj);
+    void handleKeyInput(KeyInput key, bool keyDown, GameObject &obj);
     void collisionResponse(const RectF &rectA, const RectF &rectB, RectF &rectC,
                            GameObject &objA, GameObject &objB, float deltaTime);
     void checkCollision(GameObject &a, GameObject &b, float deltaTime);

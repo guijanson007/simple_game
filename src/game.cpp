@@ -46,11 +46,11 @@ void Game::handleEvent(const Event &event)
         case EventType::KeyUp:
         {
             handleKeyInput(event.key.scancode, false, mGameState->player());
-            if (event.key.scancode == SDL_SCANCODE_ESCAPE)
+            if (event.key.scancode == KeyInput::Escape)
             {
                 mGameState->debugMode = !mGameState->debugMode;
             }
-            else if (event.key.scancode == SDL_SCANCODE_F)
+            else if (event.key.scancode == KeyInput::ToggleFullscreen)
             {
                 mSDL.toggleFullscreen();
             }
@@ -156,7 +156,7 @@ void Game::iterate()
     mSDL.presentRenderer();
 }
 
-void Game::handleKeyInput(SDL_Scancode key, bool keyDown, GameObject &obj)
+void Game::handleKeyInput(KeyInput key, bool keyDown, GameObject &obj)
 {
     {
         constexpr float JUMP_FORCE = -200.0f;
@@ -166,7 +166,7 @@ void Game::handleKeyInput(SDL_Scancode key, bool keyDown, GameObject &obj)
             {
                 case PlayerState::idle:
                 {
-                    if (key == SDL_SCANCODE_K && keyDown && obj.grounded)
+                    if (key == KeyInput::Jump && keyDown && obj.grounded)
                     {
                         // debug
                         // SDL_Log("Idle state: key %d, keyDown %d, grounded
@@ -183,7 +183,7 @@ void Game::handleKeyInput(SDL_Scancode key, bool keyDown, GameObject &obj)
                     // SDL_Log("Running state: key %d, keyDown %d, grounded %d",
                     // key,
                     //         keyDown, obj.grounded);
-                    if (key == SDL_SCANCODE_K && keyDown && obj.grounded)
+                    if (key == KeyInput::Jump && keyDown && obj.grounded)
                     {
                         obj.data.player.state = PlayerState::jumping;
                         obj.grounded = false;
@@ -213,11 +213,11 @@ void Game::update(GameObject &obj, float deltaTime)
         float currentDirection = 0;
         if (obj.type == ObjectType::player)
         {
-            if (mSDL.isKeyPressed(SDL_SCANCODE_A))
+            if (mSDL.isKeyPressed(KeyInput::Left))
             {
                 currentDirection += -1;
             }
-            if (mSDL.isKeyPressed(SDL_SCANCODE_D))
+            if (mSDL.isKeyPressed(KeyInput::Right))
             {
                 currentDirection += 1;
             }
@@ -229,7 +229,7 @@ void Game::update(GameObject &obj, float deltaTime)
                 [this, &obj, &weaponTimer](TextureId tex, TextureId shootTex,
                                            int animIndex, int shootAnimIndex)
             {
-                if (mSDL.isKeyPressed(SDL_SCANCODE_J))
+                if (mSDL.isKeyPressed(KeyInput::Shoot))
                 {
                     // set shooting tex/animation
                     obj.texture = TextureId::PlayerShoot;

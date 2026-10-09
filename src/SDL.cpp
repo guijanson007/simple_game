@@ -1,6 +1,7 @@
 #include "SDL.h"
 #include "gameObject.h"
 #include "gameState.h"
+#include "platform.h"
 #include "resources.h"
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
@@ -80,7 +81,36 @@ SDL::SDL(Resources *resources, Game::GameState *gameState)
     MIX_PlayTrack(mResources->musicTrack, 0);
 }
 
-bool SDL::pollEvent(SDL_Event &event) { return SDL_PollEvent(&event); }
+Event SDL::pollEvent()
+{
+    SDL_Event sdlEvent;
+    SDL_PollEvent(&sdlEvent);
+
+    Event event;
+
+    switch (sdlEvent.type)
+    {
+        case SDL_EVENT_QUIT:
+            event.type = EventType::Quit;
+            break;
+        case SDL_EVENT_WINDOW_RESIZED:
+            event.type = EventType::WindowResized;
+            event.window.first = sdlEvent.window.data1;
+            event.window.second = sdlEvent.window.data2;
+            break;
+        case SDL_EVENT_KEY_DOWN:
+            event.type = EventType::KeyDown;
+            event.key.scancode = sdlEvent.key.scancode;
+            break;
+        case SDL_EVENT_KEY_UP:
+            event.type = EventType::KeyUp;
+            event.key.scancode = sdlEvent.key.scancode;
+            break;
+        default:
+            event.type = EventType::NoEvent;
+    }
+    return event;
+}
 
 void SDL::draw(float deltaTime, float playerVelocityX, int tileSize)
 {

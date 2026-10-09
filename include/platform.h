@@ -2,6 +2,8 @@
 
 #include "SDL_API.h"
 
+#include <utility>
+
 struct RectF
 {
     float x;
@@ -17,7 +19,10 @@ struct RectF
     {
     }
 
-    RectF operator=(const SDL_FRect &rect)
+    RectF(const RectF &) = default;
+    RectF(RectF &&) = default;
+
+    RectF &operator=(const SDL_FRect &rect)
     {
         x = static_cast<float>(rect.x);
         y = static_cast<float>(rect.y);
@@ -26,14 +31,8 @@ struct RectF
         return *this;
     }
 
-    RectF operator=(const RectF &rect)
-    {
-        x = rect.x;
-        y = rect.y;
-        w = rect.w;
-        h = rect.h;
-        return *this;
-    }
+    RectF &operator=(const RectF &) = default;
+    RectF &operator=(RectF &&) = default;
 
     RectF(float x, float y, float w, float h)
         : x(x),
@@ -52,6 +51,48 @@ struct RectF
     }
 
     SDL_FRect toSDLFRect() const { return SDL_FRect{x, y, w, h}; }
+};
+
+enum class EventType
+{
+    KeyDown,
+    KeyUp,
+    Quit,
+    WindowResized,
+    NoEvent
+};
+
+struct Event
+{
+    EventType type;
+    union
+    {
+        struct
+        {
+            SDL_Scancode scancode;
+        } key;
+        std::pair<int, int> window;
+    };
+
+    Event()
+        : type(EventType::NoEvent),
+          window{0, 0}
+    {
+    }
+
+    Event &operator=(const Event &other)
+    {
+        type = other.type;
+        if (type == EventType::KeyDown || type == EventType::KeyUp)
+        {
+            key.scancode = other.key.scancode;
+        }
+        else if (type == EventType::WindowResized)
+        {
+            window = other.window;
+        }
+        return *this;
+    }
 };
 
 enum class Key

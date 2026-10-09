@@ -1,5 +1,6 @@
 #include "game.h"
 #include "SDL.h"
+#include "platform.h"
 
 namespace Game
 {
@@ -17,8 +18,8 @@ void Game::start()
     // Main game loop
     while (true)
     {
-        SDL_Event event;
-        while (mSDL.pollEvent(event))
+        Event event;
+        while ((event = mSDL.pollEvent()).type != EventType::NoEvent)
         {
             handleEvent(event);
         }
@@ -27,21 +28,21 @@ void Game::start()
     }
 }
 
-void Game::handleEvent(SDL_Event event)
+void Game::handleEvent(const Event &event)
 {
     switch (event.type)
     {
-        case SDL_EVENT_QUIT:
+        case EventType::Quit:
             exit(EXIT_SUCCESS);
-        case SDL_EVENT_WINDOW_RESIZED:
-            mSDL.updateWindowSize(event.window.data1, event.window.data2);
+        case EventType::WindowResized:
+            mSDL.updateWindowSize(event.window.first, event.window.second);
             break;
-        case SDL_EVENT_KEY_DOWN:
+        case EventType::KeyDown:
         {
             handleKeyInput(event.key.scancode, true, mGameState->player());
             break;
         }
-        case SDL_EVENT_KEY_UP:
+        case EventType::KeyUp:
         {
             handleKeyInput(event.key.scancode, false, mGameState->player());
             if (event.key.scancode == SDL_SCANCODE_ESCAPE)
@@ -54,6 +55,8 @@ void Game::handleEvent(SDL_Event event)
             }
             break;
         }
+        default:
+            break;
     }
 }
 

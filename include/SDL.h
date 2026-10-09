@@ -46,7 +46,7 @@ class SDL //: public Platform
     SDL(Resources *resources, Game::GameState *gameState);
     ~SDL() = default;
 
-    bool pollEvent(SDL_Event &event);
+    Event pollEvent();
 
     void updateWindowSize(int width, int height)
     {

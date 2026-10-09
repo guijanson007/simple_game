@@ -1,5 +1,5 @@
 #include "game.h"
-#include "gameObject.h"
+#include "SDL.h"
 
 namespace Game
 {
@@ -191,11 +191,9 @@ void Game::update(GameObject &obj, float deltaTime)
                         bullet.texture = mResources->texBullet;
                         bullet.currentAnimation =
                             mResources->ANIM_BULLET_MOVING;
-                        bullet.collider = SDL_FRect{
-                            .x = 0,
-                            .y = 0,
-                            .w = static_cast<float>(mResources->texBullet->h),
-                            .h = static_cast<float>(mResources->texBullet->h)};
+                        bullet.collider = RectF(
+                            0, 0, static_cast<float>(mResources->texBullet->h),
+                            static_cast<float>(mResources->texBullet->h));
                         constexpr int yVariation = 60;
                         const float yVelocity =
                             SDL_rand(yVariation) - yVariation / 2.0f;
@@ -416,21 +414,18 @@ void Game::update(GameObject &obj, float deltaTime)
                         // grounded sensor
                         const float feetY =
                             obj.position.y + obj.collider.y + obj.collider.h;
-                        SDL_FRect sensor{.x = obj.position.x + obj.collider.x,
-                                         .y = feetY - 1.0f,
-                                         .w = obj.collider.w,
-                                         .h = 2};
-                        SDL_FRect rectB{.x = objB.position.x + objB.collider.x,
-                                        .y = objB.position.y + objB.collider.y,
-                                        .w = objB.collider.w,
-                                        .h = objB.collider.h};
-                        SDL_FRect rectC{0};
+                        RectF sensor(obj.position.x + obj.collider.x,
+                                     feetY - 1.0f, obj.collider.w, 2);
+                        RectF rectB(objB.position.x + objB.collider.x,
+                                    objB.position.y + objB.collider.y,
+                                    objB.collider.w, objB.collider.h);
+
                         // A wall can overlap the sensor from the side. Only
                         // consider a tile ground when its top surface is at the
                         // player's feet.
                         constexpr float GROUND_TOLERANCE = 1.0f;
-                        if (SDL_GetRectIntersectionFloat(&sensor, &rectB,
-                                                         &rectC) &&
+                        if (SDL::getRectIntersectionFloat(sensor, rectB)
+                                .has_value() &&
                             rectB.y >= feetY - GROUND_TOLERANCE &&
                             rectB.y <= feetY + GROUND_TOLERANCE)
                         {
@@ -452,9 +447,9 @@ void Game::update(GameObject &obj, float deltaTime)
     }
 }
 
-void Game::collisionResponse(const SDL_FRect &rectA, const SDL_FRect &rectB,
-                             SDL_FRect &rectC, GameObject &objA,
-                             GameObject &objB, float deltaTime)
+void Game::collisionResponse(const RectF &rectA, const RectF &rectB,
+                             RectF &rectC, GameObject &objA, GameObject &objB,
+                             float deltaTime)
 {
     const auto genericResponse = [&]()
     {
@@ -570,20 +565,16 @@ void Game::collisionResponse(const SDL_FRect &rectA, const SDL_FRect &rectB,
 
 void Game::checkCollision(GameObject &a, GameObject &b, float deltaTime)
 {
-    SDL_FRect rectA = {.x = a.position.x + a.collider.x,
-                       .y = a.position.y + a.collider.y,
-                       .w = a.collider.w,
-                       .h = a.collider.h};
-    SDL_FRect rectB = {.x = b.position.x + b.collider.x,
-                       .y = b.position.y + b.collider.y,
-                       .w = b.collider.w,
-                       .h = b.collider.h};
+    RectF rectA(a.position.x + a.collider.x, a.position.y + a.collider.y,
+                a.collider.w, a.collider.h);
+    RectF rectB(b.position.x + b.collider.x, b.position.y + b.collider.y,
+                b.collider.w, b.collider.h);
 
-    SDL_FRect rectC;
+    std::optional<RectF> rectC = SDL::getRectIntersectionFloat(rectA, rectB);
 
-    if (SDL_GetRectIntersectionFloat(&rectA, &rectB, &rectC))
+    if (rectC.has_value())
     {
-        collisionResponse(rectA, rectB, rectC, a, b, deltaTime);
+        collisionResponse(rectA, rectB, rectC.value(), a, b, deltaTime);
     }
 }
 } // namespace Game

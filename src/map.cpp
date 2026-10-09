@@ -54,10 +54,8 @@ GameObject Map::createObject(int row, int col, SDL_Texture *tex,
     o.position =
         glm::vec2(col * mTileSize, mHeight - (MAP_ROWS - row) * mTileSize);
     o.texture = tex;
-    o.collider = {.x = 0,
-                  .y = 0.,
-                  .w = static_cast<float>(mTileSize),
-                  .h = static_cast<float>(mTileSize)}; // defaults
+    o.collider = RectF(0, 0, static_cast<float>(mTileSize),
+                       static_cast<float>(mTileSize)); // defaults
     return o;
 }
 
@@ -94,8 +92,7 @@ void Map::renderMap(std::shared_ptr<GameState> gs,
                         enemy.data.enemy = EnemyData();
                         enemy.currentAnimation = res->ANIM_ENEMY;
                         enemy.animations = res->enemyAnims;
-                        enemy.collider =
-                            SDL_FRect{.x = 10, .y = 4, .w = 12, .h = 28};
+                        enemy.collider = RectF(10, 4, 12, 28);
                         enemy.maxSpeedX = 15;
                         enemy.dynamic = true;
                         gs->layers[LAYER_IDX_CHARACTER].push_back(enemy);
@@ -114,7 +111,7 @@ void Map::renderMap(std::shared_ptr<GameState> gs,
                         player.acceleration = glm::vec2(300, 0);
                         player.maxSpeedX = 100;
                         player.dynamic = true;
-                        player.collider = {.x = 11, .y = 6, .w = 10, .h = 26};
+                        player.collider = RectF(11, 6, 10, 26);
                         gs->layers[LAYER_IDX_CHARACTER].push_back(player);
                         gs->playerIndex =
                             gs->layers[LAYER_IDX_CHARACTER].size() - 1;

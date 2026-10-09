@@ -1,8 +1,7 @@
 #pragma once
 
 #include "animation.h"
-#include <SDL3/SDL_rect.h>
-#include <SDL3/SDL_render.h>
+#include "platform.h"
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -95,14 +94,14 @@ struct GameObject
     SDL_Texture *texture;
     bool dynamic = false;
     bool grounded = false;
-    SDL_FRect collider;
+    RectF collider;
     Timer flashTimer;
     bool shouldFlash = false;
     int spriteFrame;
 
     GameObject()
         : data{.level = LevelData()},
-          collider{0},
+          collider{},
           flashTimer{0.05f}
     {
         type = ObjectType::level;

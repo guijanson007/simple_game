@@ -1,16 +1,23 @@
 #pragma once
 
 // SDL
+#include "SDL3/SDL_rect.h"
 #include "SDL_API.h"
 
-// own includes
-#include "gameObject.h"
-#include "gameState.h"
-#include "resources.h"
+#include "platform.h"
 
 // STL includes
 #include <SDL3/SDL_scancode.h>
 #include <memory>
+#include <optional>
+
+namespace Game
+{
+struct GameObject;
+struct GameState;
+} // namespace Game
+
+struct Resources;
 
 namespace SDL
 {
@@ -31,7 +38,9 @@ struct Window
     }
 };
 
-class SDL
+std::optional<RectF> getRectIntersectionFloat(const RectF &a, const RectF &b);
+
+class SDL //: public Platform
 {
   public:
     SDL(Resources *resources, Game::GameState *gameState);

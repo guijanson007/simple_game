@@ -1,6 +1,5 @@
 #pragma once
 
-#include "SDL_API.h"
 #include "gameState.h"
 #include "resources.h"
 

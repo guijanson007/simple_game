@@ -1,4 +1,6 @@
 #include "SDL.h"
+#include "gameObject.h"
+#include "gameState.h"
 #include "resources.h"
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
@@ -213,6 +215,20 @@ void SDL::drawObject(Game::GameObject &obj, float width, float height,
         SDL_RenderFillRect(mRenderer.get(), &rectA);
         SDL_SetRenderDrawBlendMode(mRenderer.get(), SDL_BLENDMODE_NONE);
     }
+}
+
+std::optional<RectF> getRectIntersectionFloat(const RectF &a, const RectF &b)
+{
+    SDL_FRect intersection;
+    SDL_FRect rectA = a.toSDLFRect();
+    SDL_FRect rectB = b.toSDLFRect();
+
+    if (SDL_GetRectIntersectionFloat(&rectA, &rectB, &intersection))
+    {
+        RectF result(intersection);
+        return result;
+    }
+    return {};
 }
 
 } // namespace SDL

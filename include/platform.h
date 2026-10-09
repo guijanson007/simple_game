@@ -95,6 +95,29 @@ struct Event
     }
 };
 
+enum class TextureId
+{
+    PlayerIdle,
+    PlayerRun,
+    Brick,
+    Grass,
+    Ground,
+    Panel,
+    PlayerSlide,
+    Bg1,
+    Bg2,
+    Bg3,
+    Bg4,
+    Bullet,
+    BulletHit,
+    PlayerShoot,
+    PlayerRunShoot,
+    PlayerSlideShoot,
+    Enemy,
+    EnemyHit,
+    EnemyDie
+};
+
 enum class Key
 {
     Left,

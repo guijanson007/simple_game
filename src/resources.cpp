@@ -34,11 +34,11 @@ void Resources::loadResources(SDL_Renderer &renderer)
 
     texIdle = loadTexture(DATA_PATH "/idle.png", renderer);
     texRun = loadTexture(DATA_PATH "/run.png", renderer);
-    texSlide = loadTexture(DATA_PATH "/slide.png", renderer);
     texBrick = loadTexture(DATA_PATH "/tiles/brick.png", renderer);
     texGrass = loadTexture(DATA_PATH "/tiles/grass.png", renderer);
     texGround = loadTexture(DATA_PATH "/tiles/ground.png", renderer);
     texPanel = loadTexture(DATA_PATH "/tiles/panel.png", renderer);
+    texSlide = loadTexture(DATA_PATH "/slide.png", renderer);
     texBg1 = loadTexture(DATA_PATH "/bg/bg_layer1.png", renderer);
     texBg2 = loadTexture(DATA_PATH "/bg/bg_layer2.png", renderer);
     texBg3 = loadTexture(DATA_PATH "/bg/bg_layer3.png", renderer);

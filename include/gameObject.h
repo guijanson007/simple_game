@@ -91,7 +91,7 @@ struct GameObject
     float maxSpeedX;
     std::vector<Animation> animations;
     int currentAnimation;
-    SDL_Texture *texture;
+    TextureId texture;
     bool dynamic = false;
     bool grounded = false;
     RectF collider;

@@ -1,6 +1,7 @@
 #include "game.h"
 #include "SDL.h"
 #include "platform.h"
+#include <format>
 
 namespace Game
 {
@@ -99,7 +100,60 @@ void Game::iterate()
     //     / 2.0f;
 
     // perform drawing commands
-    mSDL.draw(deltaTime, player.velocity.x, TILE_SIZE);
+    // mSDL.draw(deltaTime, player.velocity.x, TILE_SIZE);
+
+    mSDL.setDrawColor(30, 30, 30, 255);
+    mSDL.clear();
+
+    // draw background images
+    mSDL.drawTexture(TextureId::Bg1);
+    mSDL.drawParalaxBackground(TextureId::Bg4, player.velocity.x,
+                               mGameState->bg4Scroll, 0.075f, deltaTime);
+    mSDL.drawParalaxBackground(TextureId::Bg3, player.velocity.x,
+                               mGameState->bg3Scroll, 0.150f, deltaTime);
+    mSDL.drawParalaxBackground(TextureId::Bg2, player.velocity.x,
+                               mGameState->bg2Scroll, 0.3f, deltaTime);
+
+    // draw background tiles
+    mSDL.drawTiles(mGameState->backgroundTiles, mGameState->mapViewPort);
+
+    // draw all objects
+    for (auto &layer : mGameState->layers)
+    {
+        for (GameObject &obj : layer)
+        {
+            mSDL.drawObject(obj, TILE_SIZE, TILE_SIZE, deltaTime);
+        }
+    }
+
+    // draw bullets
+    for (GameObject &bullet : mGameState->bullets)
+    {
+        if (bullet.data.bullet.state != BulletState::inactive)
+        {
+            mSDL.drawObject(bullet, bullet.collider.w, bullet.collider.h,
+                            deltaTime);
+        }
+    }
+
+    // draw foreground tiles
+    mSDL.drawTiles(mGameState->foregroundTiles, mGameState->mapViewPort);
+
+    if (mGameState->debugMode)
+    {
+        // display some debug info
+        mSDL.setDrawColor(255, 255, 255, 255);
+        mSDL.renderDebugText(
+            5, 5,
+            std::format(
+                "State: {}, Bullets: {}, Grounded: {}",
+                static_cast<int>(mGameState->player().data.player.state),
+                mGameState->bullets.size(), mGameState->player().grounded)
+                .c_str());
+    }
+
+    // always present the renderer at the end of the loop
+    mSDL.presentRenderer();
 }
 
 void Game::handleKeyInput(SDL_Scancode key, bool keyDown, GameObject &obj)
@@ -172,14 +226,13 @@ void Game::update(GameObject &obj, float deltaTime)
             weaponTimer.step(deltaTime);
 
             const auto handleShooting =
-                [this, &obj, &weaponTimer](SDL_Texture *tex,
-                                           SDL_Texture *shootTex, int animIndex,
-                                           int shootAnimIndex)
+                [this, &obj, &weaponTimer](TextureId tex, TextureId shootTex,
+                                           int animIndex, int shootAnimIndex)
             {
                 if (mSDL.isKeyPressed(SDL_SCANCODE_J))
                 {
                     // set shooting tex/animation
-                    obj.texture = shootTex;
+                    obj.texture = TextureId::PlayerShoot;
                     obj.currentAnimation = shootAnimIndex;
 
                     if (weaponTimer.isTimeout())
@@ -191,7 +244,7 @@ void Game::update(GameObject &obj, float deltaTime)
                         bullet.data.bullet = BulletData();
                         bullet.type = ObjectType::bullet;
                         bullet.direction = mGameState->player().direction;
-                        bullet.texture = mResources->texBullet;
+                        bullet.texture = TextureId::Bullet;
                         bullet.currentAnimation =
                             mResources->ANIM_BULLET_MOVING;
                         bullet.collider = RectF(
@@ -275,7 +328,8 @@ void Game::update(GameObject &obj, float deltaTime)
                             }
                         }
                     }
-                    handleShooting(mResources->texIdle, mResources->texShoot,
+                    handleShooting(TextureId::PlayerIdle,
+                                   TextureId::PlayerShoot,
                                    mResources->ANIM_PLAYER_IDLE,
                                    mResources->ANIM_PLAYER_SHOOT);
                     break;
@@ -291,15 +345,15 @@ void Game::update(GameObject &obj, float deltaTime)
                     // moving in opposite direction of velocity, sliding!
                     if (obj.velocity.x * obj.direction < 0 && obj.grounded)
                     {
-                        handleShooting(mResources->texSlide,
-                                       mResources->texSlideShoot,
+                        handleShooting(TextureId::PlayerSlide,
+                                       TextureId::PlayerSlideShoot,
                                        mResources->ANIM_PLAYER_SLIDE,
                                        mResources->ANIM_PLAYER_SLIDE_SHOOT);
                     }
                     else
                     {
-                        handleShooting(mResources->texRun,
-                                       mResources->texRunShoot,
+                        handleShooting(TextureId::PlayerRun,
+                                       TextureId::PlayerRunShoot,
                                        mResources->ANIM_PLAYER_RUN,
                                        mResources->ANIM_PLAYER_RUN);
                     }
@@ -307,7 +361,8 @@ void Game::update(GameObject &obj, float deltaTime)
                 }
                 case PlayerState::jumping:
                 {
-                    handleShooting(mResources->texRun, mResources->texRunShoot,
+                    handleShooting(TextureId::PlayerRun,
+                                   TextureId::PlayerRunShoot,
                                    mResources->ANIM_PLAYER_RUN,
                                    mResources->ANIM_PLAYER_RUN);
                     break;
@@ -368,7 +423,7 @@ void Game::update(GameObject &obj, float deltaTime)
                     if (enemyData.damagedTimer.step(deltaTime))
                     {
                         enemyData.state = EnemyState::shambling;
-                        obj.texture = mResources->texEnemy;
+                        obj.texture = TextureId::Enemy;
                         obj.currentAnimation = mResources->ANIM_ENEMY;
                     }
                     break;
@@ -526,7 +581,7 @@ void Game::collisionResponse(const RectF &rectA, const RectF &rectB,
                             objB.direction = -objA.direction;
                             objB.shouldFlash = true;
                             objB.flashTimer.reset();
-                            objB.texture = mResources->texEnemyHit;
+                            objB.texture = TextureId::EnemyHit;
                             objB.currentAnimation = mResources->ANIM_ENEMY_HIT;
                             enemyData.state = EnemyState::damaged;
                             enemyData.healthPoints -= 10;
@@ -534,7 +589,7 @@ void Game::collisionResponse(const RectF &rectA, const RectF &rectB,
                             if (enemyData.healthPoints <= 0)
                             {
                                 enemyData.state = EnemyState::dead;
-                                objB.texture = mResources->texEnemyDie;
+                                objB.texture = TextureId::EnemyDie;
                                 objB.currentAnimation =
                                     mResources->ANIM_ENEMY_DIE;
                             }
@@ -553,7 +608,7 @@ void Game::collisionResponse(const RectF &rectA, const RectF &rectB,
                     genericResponse();
                     objA.velocity *= 0;
                     objA.data.bullet.state = BulletState::colliding;
-                    objA.texture = mResources->texBulletHit;
+                    objA.texture = TextureId::BulletHit;
                     objA.currentAnimation = mResources->ANIM_BULLET_HIT;
                     break;
                 }

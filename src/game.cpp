@@ -1,7 +1,9 @@
 #include "game.h"
 #include "SDL.h"
+#include "gameObject.h"
 #include "platform.h"
 #include <format>
+#include <variant>
 
 namespace Game
 {
@@ -129,7 +131,8 @@ void Game::iterate()
     // draw bullets
     for (GameObject &bullet : mGameState->bullets)
     {
-        if (bullet.data.bullet.state != BulletState::inactive)
+        if (std::get_if<BulletData>(&bullet.data)->state !=
+            BulletState::inactive)
         {
             mSDL.drawObject(bullet, bullet.collider.w, bullet.collider.h,
                             deltaTime);
@@ -141,15 +144,16 @@ void Game::iterate()
 
     if (mGameState->debugMode)
     {
+        auto *player = std::get_if<PlayerData>(&mGameState->player().data);
+
         // display some debug info
         mSDL.setDrawColor(255, 255, 255, 255);
-        mSDL.renderDebugText(
-            5, 5,
-            std::format(
-                "State: {}, Bullets: {}, Grounded: {}",
-                static_cast<int>(mGameState->player().data.player.state),
-                mGameState->bullets.size(), mGameState->player().grounded)
-                .c_str());
+        mSDL.renderDebugText(5, 5,
+                             std::format("State: {}, Bullets: {}, Grounded: {}",
+                                         static_cast<int>(player->state),
+                                         mGameState->bullets.size(),
+                                         mGameState->player().grounded)
+                                 .c_str());
     }
 
     // always present the renderer at the end of the loop
@@ -160,9 +164,9 @@ void Game::handleKeyInput(KeyInput key, bool keyDown, GameObject &obj)
 {
     {
         constexpr float JUMP_FORCE = -200.0f;
-        if (obj.type == ObjectType::player)
+        if (auto *player = std::get_if<PlayerData>(&obj.data))
         {
-            switch (obj.data.player.state)
+            switch (player->state)
             {
                 case PlayerState::idle:
                 {
@@ -171,7 +175,7 @@ void Game::handleKeyInput(KeyInput key, bool keyDown, GameObject &obj)
                         // debug
                         // SDL_Log("Idle state: key %d, keyDown %d, grounded
                         // %d", key, keyDown, obj.grounded);
-                        obj.data.player.state = PlayerState::jumping;
+                        player->state = PlayerState::jumping;
                         obj.grounded = false;
                         obj.velocity.y = JUMP_FORCE;
                     }
@@ -185,7 +189,7 @@ void Game::handleKeyInput(KeyInput key, bool keyDown, GameObject &obj)
                     //         keyDown, obj.grounded);
                     if (key == KeyInput::Jump && keyDown && obj.grounded)
                     {
-                        obj.data.player.state = PlayerState::jumping;
+                        player->state = PlayerState::jumping;
                         obj.grounded = false;
                         obj.velocity.y = JUMP_FORCE;
                     }
@@ -211,7 +215,7 @@ void Game::update(GameObject &obj, float deltaTime)
             obj.velocity += glm::vec2(0, 500) * deltaTime;
         }
         float currentDirection = 0;
-        if (obj.type == ObjectType::player)
+        if (auto *player = std::get_if<PlayerData>(&obj.data))
         {
             if (mSDL.isKeyPressed(KeyInput::Left))
             {
@@ -222,7 +226,7 @@ void Game::update(GameObject &obj, float deltaTime)
                 currentDirection += 1;
             }
 
-            Timer &weaponTimer = obj.data.player.weaponTimer;
+            Timer &weaponTimer = player->weaponTimer;
             weaponTimer.step(deltaTime);
 
             const auto handleShooting =
@@ -241,8 +245,7 @@ void Game::update(GameObject &obj, float deltaTime)
 
                         // spawn some bullets
                         GameObject bullet;
-                        bullet.data.bullet = BulletData();
-                        bullet.type = ObjectType::bullet;
+                        bullet.data = BulletData();
                         bullet.direction = mGameState->player().direction;
                         bullet.texture = TextureId::Bullet;
                         bullet.currentAnimation =
@@ -277,8 +280,9 @@ void Game::update(GameObject &obj, float deltaTime)
                              i < mGameState->bullets.size() && !foundInactive;
                              ++i)
                         {
-                            if (mGameState->bullets[i].data.bullet.state ==
-                                BulletState::inactive)
+                            auto *currBulletData = std::get_if<BulletData>(
+                                &mGameState->bullets[i].data);
+                            if (currBulletData->state == BulletState::inactive)
                             {
                                 mGameState->bullets[i] = bullet;
                                 foundInactive = true;
@@ -300,14 +304,15 @@ void Game::update(GameObject &obj, float deltaTime)
                 }
             };
 
-            switch (obj.data.player.state)
+            switch (auto *player = std::get_if<PlayerData>(&obj.data);
+                    player->state)
             {
                 case PlayerState::idle:
                 {
                     // switching to running state
                     if (currentDirection)
                     {
-                        obj.data.player.state = PlayerState::running;
+                        player->state = PlayerState::running;
                     }
                     else
                     {
@@ -339,7 +344,7 @@ void Game::update(GameObject &obj, float deltaTime)
                     // switching to idle state
                     if (!currentDirection)
                     {
-                        obj.data.player.state = PlayerState::idle;
+                        player->state = PlayerState::idle;
                     }
 
                     // moving in opposite direction of velocity, sliding!
@@ -369,9 +374,9 @@ void Game::update(GameObject &obj, float deltaTime)
                 }
             }
         }
-        else if (obj.type == ObjectType::bullet)
+        else if (auto *bullet = std::get_if<BulletData>(&obj.data))
         {
-            switch (obj.data.bullet.state)
+            switch (bullet->state)
             {
                 case BulletState::moving:
                 {
@@ -382,7 +387,7 @@ void Game::update(GameObject &obj, float deltaTime)
                     obj.position.y - mGameState->mapViewPort.y > mSDL.getWindow().logH)      // bottom edge
                     // clang-format on
                     {
-                        obj.data.bullet.state = BulletState::inactive;
+                        bullet->state = BulletState::inactive;
                     }
                     break;
                 }
@@ -390,17 +395,17 @@ void Game::update(GameObject &obj, float deltaTime)
                 {
                     if (obj.animations[obj.currentAnimation].isDone())
                     {
-                        obj.data.bullet.state = BulletState::inactive;
+                        bullet->state = BulletState::inactive;
                     }
                     break;
                 }
             }
         }
 
-        else if (obj.type == ObjectType::enemy)
+        else if (auto *enemyData = std::get_if<EnemyData>(&obj.data))
         {
-            EnemyData &enemyData = obj.data.enemy;
-            switch (enemyData.state)
+
+            switch (enemyData->state)
             {
                 case EnemyState::shambling:
                 {
@@ -420,9 +425,9 @@ void Game::update(GameObject &obj, float deltaTime)
                 }
                 case EnemyState::damaged:
                 {
-                    if (enemyData.damagedTimer.step(deltaTime))
+                    if (enemyData->damagedTimer.step(deltaTime))
                     {
-                        enemyData.state = EnemyState::shambling;
+                        enemyData->state = EnemyState::shambling;
                         obj.texture = TextureId::Enemy;
                         obj.currentAnimation = mResources->ANIM_ENEMY;
                     }
@@ -467,7 +472,7 @@ void Game::update(GameObject &obj, float deltaTime)
                 {
                     checkCollision(obj, objB, deltaTime);
 
-                    if (objB.type == ObjectType::level)
+                    if (std::holds_alternative<LevelData>(objB.data))
                     {
                         // grounded sensor
                         const float feetY =
@@ -497,9 +502,10 @@ void Game::update(GameObject &obj, float deltaTime)
         {
             // switching grounded state
             obj.grounded = foundGround;
-            if (foundGround && obj.type == ObjectType::player)
+            auto *player = std::get_if<PlayerData>(&obj.data);
+            if (foundGround && (player != nullptr))
             {
-                obj.data.player.state = PlayerState::running;
+                player->state = PlayerState::running;
             }
         }
     }
@@ -539,86 +545,83 @@ void Game::collisionResponse(const RectF &rectA, const RectF &rectB,
         }
     };
 
-    if (objA.type == ObjectType::player)
-    {
-        switch (objB.type)
-        {
-            case ObjectType::level:
+    std::visit(
+        overloaded{
+            // --- PLAYER COLLISIONS ---
+            [&](PlayerData &player, LevelData &level) { genericResponse(); },
+            [&](PlayerData &player, EnemyData &enemy)
             {
-                genericResponse();
-                break;
-            }
-            case ObjectType::enemy:
-            {
-                if (objB.data.enemy.state != EnemyState::dead)
+                if (enemy.state != EnemyState::dead)
                 {
                     objA.velocity = glm::vec2(100, 0) * -objA.direction;
                 }
-                break;
-            }
-        }
-    }
-    else if (objA.type == ObjectType::bullet)
-    {
-        bool passThrough{false};
-        switch (objA.data.bullet.state)
-        {
-            case BulletState::moving:
-            {
-                switch (objB.type)
-                {
-                    case ObjectType::level:
-                    {
-                        MIX_PlayAudio(mResources->mixer,
-                                      mResources->chunkShootHit);
-                        break;
-                    }
-                    case ObjectType::enemy:
-                    {
-                        EnemyData &enemyData = objB.data.enemy;
-                        if (enemyData.state != EnemyState::dead)
-                        {
-                            objB.direction = -objA.direction;
-                            objB.shouldFlash = true;
-                            objB.flashTimer.reset();
-                            objB.texture = TextureId::EnemyHit;
-                            objB.currentAnimation = mResources->ANIM_ENEMY_HIT;
-                            enemyData.state = EnemyState::damaged;
-                            enemyData.healthPoints -= 10;
+            },
 
-                            if (enemyData.healthPoints <= 0)
-                            {
-                                enemyData.state = EnemyState::dead;
-                                objB.texture = TextureId::EnemyDie;
-                                objB.currentAnimation =
-                                    mResources->ANIM_ENEMY_DIE;
-                            }
-                            MIX_PlayAudio(mResources->mixer,
-                                          mResources->chunkEnemyHit);
-                        }
-                        else
-                        {
-                            passThrough = true;
-                        }
-                        break;
-                    }
+            // --- BULLET COLLISIONS ---
+            [&](BulletData &bullet, LevelData &level)
+            {
+                if (bullet.state == BulletState::moving)
+                {
+                    MIX_PlayAudio(mResources->mixer, mResources->chunkShootHit);
+
+                    genericResponse();
+                    objA.velocity *= 0;
+                    bullet.state = BulletState::colliding;
+                    objA.texture = TextureId::BulletHit;
+                    objA.currentAnimation = mResources->ANIM_BULLET_HIT;
                 }
+            },
+            [&](BulletData &bullet, EnemyData &enemy)
+            {
+                if (bullet.state != BulletState::moving)
+                    return;
+
+                bool passThrough = false;
+                if (enemy.state != EnemyState::dead)
+                {
+                    objB.direction = -objA.direction;
+                    objB.shouldFlash = true;
+                    objB.flashTimer.reset();
+                    objB.texture = TextureId::EnemyHit;
+                    objB.currentAnimation = mResources->ANIM_ENEMY_HIT;
+                    enemy.state = EnemyState::damaged;
+                    enemy.healthPoints -= 10;
+
+                    if (enemy.healthPoints <= 0)
+                    {
+                        enemy.state = EnemyState::dead;
+                        objB.texture = TextureId::EnemyDie;
+                        objB.currentAnimation = mResources->ANIM_ENEMY_DIE;
+                    }
+                    MIX_PlayAudio(mResources->mixer, mResources->chunkEnemyHit);
+                }
+                else
+                {
+                    passThrough = true;
+                }
+
                 if (!passThrough)
                 {
                     genericResponse();
                     objA.velocity *= 0;
-                    objA.data.bullet.state = BulletState::colliding;
+                    bullet.state = BulletState::colliding;
                     objA.texture = TextureId::BulletHit;
                     objA.currentAnimation = mResources->ANIM_BULLET_HIT;
-                    break;
                 }
-            }
-        }
-    }
-    else if (objA.type == ObjectType::enemy)
-    {
-        genericResponse();
-    }
+            },
+
+            // --- ENEMY COLLISIONS ---
+            // If objA is an Enemy, and objB is anything (auto)
+            [&](EnemyData &enemy, auto &anythingElse) { genericResponse(); },
+
+            // --- FALLBACK ---
+            // Catch-all for any combination we explicitly don't care about
+            // e.g., Level vs Level, Bullet vs Bullet
+            [](auto &unhandledA, auto &unhandledB)
+            {
+                // Do nothing
+            }},
+        objA.data, objB.data);
 }
 
 void Game::checkCollision(GameObject &a, GameObject &b, float deltaTime)

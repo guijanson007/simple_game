@@ -3,7 +3,18 @@
 #include "animation.h"
 #include "platform.h"
 #include <glm/glm.hpp>
+#include <variant>
 #include <vector>
+
+//  boilerplate for overloaded lambdas, see
+//  https://en.cppreference.com/w/cpp/utility/variant/visit
+template <class... Ts> struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+
+// explicit deduction guide (Required for C++17, optional but harmless in C++20)
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 namespace Game
 {
@@ -66,25 +77,10 @@ struct BulletData
     }
 };
 
-union ObjectData
-{
-    PlayerData player;
-    LevelData level;
-    EnemyData enemy;
-    BulletData bullet;
-};
-
-enum class ObjectType
-{
-    player,
-    level,
-    enemy,
-    bullet
-};
+using ObjectData = std::variant<PlayerData, LevelData, EnemyData, BulletData>;
 
 struct GameObject
 {
-    ObjectType type;
     ObjectData data;
     glm::vec2 position, velocity, acceleration;
     float direction;
@@ -100,11 +96,10 @@ struct GameObject
     int spriteFrame;
 
     GameObject()
-        : data{.level = LevelData()},
+        : data{LevelData()},
           collider{},
           flashTimer{0.05f}
     {
-        type = ObjectType::level;
         direction = 1;
         maxSpeedX = 0;
         position = velocity = acceleration = glm::vec2(0);

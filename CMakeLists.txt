@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+
 # This is for wayland support on Linux
 set(SDL_X11 OFF CACHE BOOL "" FORCE)
 

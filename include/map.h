@@ -1,7 +1,7 @@
 #pragma once
 
-#include "SDL_API.h"
 #include "gameState.h"
+#include "platform.h"
 #include "resources.h"
 
 #include <memory>
@@ -28,7 +28,6 @@ class Map
                         [MAP_COLS]; // 2D array of foreground tile indices
     short mBackgroundMap[MAP_ROWS]
                         [MAP_COLS]; // 2D array of background tile indices
-    GameObject createObject(int row, int col, SDL_Texture *tex,
-                            ObjectType type);
+    GameObject createObject(int row, int col, TextureId tex, ObjectType type);
 };
 } // namespace Game

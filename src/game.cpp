@@ -1,5 +1,7 @@
 #include "game.h"
-#include "gameObject.h"
+#include "SDL.h"
+#include "platform.h"
+#include <format>
 
 namespace Game
 {
@@ -17,8 +19,8 @@ void Game::start()
     // Main game loop
     while (true)
     {
-        SDL_Event event;
-        while (mSDL.pollEvent(event))
+        Event event;
+        while ((event = mSDL.pollEvent()).type != EventType::NoEvent)
         {
             handleEvent(event);
         }
@@ -27,33 +29,35 @@ void Game::start()
     }
 }
 
-void Game::handleEvent(SDL_Event event)
+void Game::handleEvent(const Event &event)
 {
     switch (event.type)
     {
-        case SDL_EVENT_QUIT:
+        case EventType::Quit:
             exit(EXIT_SUCCESS);
-        case SDL_EVENT_WINDOW_RESIZED:
-            mSDL.updateWindowSize(event.window.data1, event.window.data2);
+        case EventType::WindowResized:
+            mSDL.updateWindowSize(event.window.first, event.window.second);
             break;
-        case SDL_EVENT_KEY_DOWN:
+        case EventType::KeyDown:
         {
             handleKeyInput(event.key.scancode, true, mGameState->player());
             break;
         }
-        case SDL_EVENT_KEY_UP:
+        case EventType::KeyUp:
         {
             handleKeyInput(event.key.scancode, false, mGameState->player());
-            if (event.key.scancode == SDL_SCANCODE_ESCAPE)
+            if (event.key.scancode == KeyInput::Escape)
             {
                 mGameState->debugMode = !mGameState->debugMode;
             }
-            else if (event.key.scancode == SDL_SCANCODE_F)
+            else if (event.key.scancode == KeyInput::ToggleFullscreen)
             {
                 mSDL.toggleFullscreen();
             }
             break;
         }
+        default:
+            break;
     }
 }
 
@@ -96,10 +100,63 @@ void Game::iterate()
     //     / 2.0f;
 
     // perform drawing commands
-    mSDL.draw(deltaTime, player.velocity.x, TILE_SIZE);
+    // mSDL.draw(deltaTime, player.velocity.x, TILE_SIZE);
+
+    mSDL.setDrawColor(30, 30, 30, 255);
+    mSDL.clear();
+
+    // draw background images
+    mSDL.drawTexture(TextureId::Bg1);
+    mSDL.drawParalaxBackground(TextureId::Bg4, player.velocity.x,
+                               mGameState->bg4Scroll, 0.075f, deltaTime);
+    mSDL.drawParalaxBackground(TextureId::Bg3, player.velocity.x,
+                               mGameState->bg3Scroll, 0.150f, deltaTime);
+    mSDL.drawParalaxBackground(TextureId::Bg2, player.velocity.x,
+                               mGameState->bg2Scroll, 0.3f, deltaTime);
+
+    // draw background tiles
+    mSDL.drawTiles(mGameState->backgroundTiles, mGameState->mapViewPort);
+
+    // draw all objects
+    for (auto &layer : mGameState->layers)
+    {
+        for (GameObject &obj : layer)
+        {
+            mSDL.drawObject(obj, TILE_SIZE, TILE_SIZE, deltaTime);
+        }
+    }
+
+    // draw bullets
+    for (GameObject &bullet : mGameState->bullets)
+    {
+        if (bullet.data.bullet.state != BulletState::inactive)
+        {
+            mSDL.drawObject(bullet, bullet.collider.w, bullet.collider.h,
+                            deltaTime);
+        }
+    }
+
+    // draw foreground tiles
+    mSDL.drawTiles(mGameState->foregroundTiles, mGameState->mapViewPort);
+
+    if (mGameState->debugMode)
+    {
+        // display some debug info
+        mSDL.setDrawColor(255, 255, 255, 255);
+        mSDL.renderDebugText(
+            5, 5,
+            std::format(
+                "State: {}, Bullets: {}, Grounded: {}",
+                static_cast<int>(mGameState->player().data.player.state),
+                mGameState->bullets.size(), mGameState->player().grounded)
+                .c_str());
+    }
+
+    // always present the renderer at the end of the loop
+    mSDL.presentRenderer();
 }
 
-void Game::handleKeyInput(SDL_Scancode key, bool keyDown, GameObject &obj)
+void Game::handleKeyInput(KeyInput key, bool keyDown, GameObject &obj)
 {
     {
         constexpr float JUMP_FORCE = -200.0f;
@@ -109,7 +166,7 @@ void Game::handleKeyInput(SDL_Scancode key, bool keyDown, GameObject &obj)
             {
                 case PlayerState::idle:
                 {
-                    if (key == SDL_SCANCODE_K && keyDown && obj.grounded)
+                    if (key == KeyInput::Jump && keyDown && obj.grounded)
                     {
                         // debug
                         // SDL_Log("Idle state: key %d, keyDown %d, grounded
@@ -126,7 +183,7 @@ void Game::handleKeyInput(SDL_Scancode key, bool keyDown, GameObject &obj)
                     // SDL_Log("Running state: key %d, keyDown %d, grounded %d",
                     // key,
                     //         keyDown, obj.grounded);
-                    if (key == SDL_SCANCODE_K && keyDown && obj.grounded)
+                    if (key == KeyInput::Jump && keyDown && obj.grounded)
                     {
                         obj.data.player.state = PlayerState::jumping;
                         obj.grounded = false;
@@ -156,11 +213,11 @@ void Game::update(GameObject &obj, float deltaTime)
         float currentDirection = 0;
         if (obj.type == ObjectType::player)
         {
-            if (mSDL.isKeyPressed(SDL_SCANCODE_A))
+            if (mSDL.isKeyPressed(KeyInput::Left))
             {
                 currentDirection += -1;
             }
-            if (mSDL.isKeyPressed(SDL_SCANCODE_D))
+            if (mSDL.isKeyPressed(KeyInput::Right))
             {
                 currentDirection += 1;
             }
@@ -169,14 +226,13 @@ void Game::update(GameObject &obj, float deltaTime)
             weaponTimer.step(deltaTime);
 
             const auto handleShooting =
-                [this, &obj, &weaponTimer](SDL_Texture *tex,
-                                           SDL_Texture *shootTex, int animIndex,
-                                           int shootAnimIndex)
+                [this, &obj, &weaponTimer](TextureId tex, TextureId shootTex,
+                                           int animIndex, int shootAnimIndex)
             {
-                if (mSDL.isKeyPressed(SDL_SCANCODE_J))
+                if (mSDL.isKeyPressed(KeyInput::Shoot))
                 {
                     // set shooting tex/animation
-                    obj.texture = shootTex;
+                    obj.texture = TextureId::PlayerShoot;
                     obj.currentAnimation = shootAnimIndex;
 
                     if (weaponTimer.isTimeout())
@@ -188,14 +244,12 @@ void Game::update(GameObject &obj, float deltaTime)
                         bullet.data.bullet = BulletData();
                         bullet.type = ObjectType::bullet;
                         bullet.direction = mGameState->player().direction;
-                        bullet.texture = mResources->texBullet;
+                        bullet.texture = TextureId::Bullet;
                         bullet.currentAnimation =
                             mResources->ANIM_BULLET_MOVING;
-                        bullet.collider = SDL_FRect{
-                            .x = 0,
-                            .y = 0,
-                            .w = static_cast<float>(mResources->texBullet->h),
-                            .h = static_cast<float>(mResources->texBullet->h)};
+                        bullet.collider = RectF(
+                            0, 0, static_cast<float>(mResources->texBullet->h),
+                            static_cast<float>(mResources->texBullet->h));
                         constexpr int yVariation = 60;
                         const float yVelocity =
                             SDL_rand(yVariation) - yVariation / 2.0f;
@@ -274,7 +328,8 @@ void Game::update(GameObject &obj, float deltaTime)
                             }
                         }
                     }
-                    handleShooting(mResources->texIdle, mResources->texShoot,
+                    handleShooting(TextureId::PlayerIdle,
+                                   TextureId::PlayerShoot,
                                    mResources->ANIM_PLAYER_IDLE,
                                    mResources->ANIM_PLAYER_SHOOT);
                     break;
@@ -290,15 +345,15 @@ void Game::update(GameObject &obj, float deltaTime)
                     // moving in opposite direction of velocity, sliding!
                     if (obj.velocity.x * obj.direction < 0 && obj.grounded)
                     {
-                        handleShooting(mResources->texSlide,
-                                       mResources->texSlideShoot,
+                        handleShooting(TextureId::PlayerSlide,
+                                       TextureId::PlayerSlideShoot,
                                        mResources->ANIM_PLAYER_SLIDE,
                                        mResources->ANIM_PLAYER_SLIDE_SHOOT);
                     }
                     else
                     {
-                        handleShooting(mResources->texRun,
-                                       mResources->texRunShoot,
+                        handleShooting(TextureId::PlayerRun,
+                                       TextureId::PlayerRunShoot,
                                        mResources->ANIM_PLAYER_RUN,
                                        mResources->ANIM_PLAYER_RUN);
                     }
@@ -306,7 +361,8 @@ void Game::update(GameObject &obj, float deltaTime)
                 }
                 case PlayerState::jumping:
                 {
-                    handleShooting(mResources->texRun, mResources->texRunShoot,
+                    handleShooting(TextureId::PlayerRun,
+                                   TextureId::PlayerRunShoot,
                                    mResources->ANIM_PLAYER_RUN,
                                    mResources->ANIM_PLAYER_RUN);
                     break;
@@ -367,7 +423,7 @@ void Game::update(GameObject &obj, float deltaTime)
                     if (enemyData.damagedTimer.step(deltaTime))
                     {
                         enemyData.state = EnemyState::shambling;
-                        obj.texture = mResources->texEnemy;
+                        obj.texture = TextureId::Enemy;
                         obj.currentAnimation = mResources->ANIM_ENEMY;
                     }
                     break;
@@ -416,21 +472,18 @@ void Game::update(GameObject &obj, float deltaTime)
                         // grounded sensor
                         const float feetY =
                             obj.position.y + obj.collider.y + obj.collider.h;
-                        SDL_FRect sensor{.x = obj.position.x + obj.collider.x,
-                                         .y = feetY - 1.0f,
-                                         .w = obj.collider.w,
-                                         .h = 2};
-                        SDL_FRect rectB{.x = objB.position.x + objB.collider.x,
-                                        .y = objB.position.y + objB.collider.y,
-                                        .w = objB.collider.w,
-                                        .h = objB.collider.h};
-                        SDL_FRect rectC{0};
+                        RectF sensor(obj.position.x + obj.collider.x,
+                                     feetY - 1.0f, obj.collider.w, 2);
+                        RectF rectB(objB.position.x + objB.collider.x,
+                                    objB.position.y + objB.collider.y,
+                                    objB.collider.w, objB.collider.h);
+
                         // A wall can overlap the sensor from the side. Only
                         // consider a tile ground when its top surface is at the
                         // player's feet.
                         constexpr float GROUND_TOLERANCE = 1.0f;
-                        if (SDL_GetRectIntersectionFloat(&sensor, &rectB,
-                                                         &rectC) &&
+                        if (SDL::getRectIntersectionFloat(sensor, rectB)
+                                .has_value() &&
                             rectB.y >= feetY - GROUND_TOLERANCE &&
                             rectB.y <= feetY + GROUND_TOLERANCE)
                         {
@@ -452,9 +505,9 @@ void Game::update(GameObject &obj, float deltaTime)
     }
 }
 
-void Game::collisionResponse(const SDL_FRect &rectA, const SDL_FRect &rectB,
-                             SDL_FRect &rectC, GameObject &objA,
-                             GameObject &objB, float deltaTime)
+void Game::collisionResponse(const RectF &rectA, const RectF &rectB,
+                             RectF &rectC, GameObject &objA, GameObject &objB,
+                             float deltaTime)
 {
     const auto genericResponse = [&]()
     {
@@ -528,7 +581,7 @@ void Game::collisionResponse(const SDL_FRect &rectA, const SDL_FRect &rectB,
                             objB.direction = -objA.direction;
                             objB.shouldFlash = true;
                             objB.flashTimer.reset();
-                            objB.texture = mResources->texEnemyHit;
+                            objB.texture = TextureId::EnemyHit;
                             objB.currentAnimation = mResources->ANIM_ENEMY_HIT;
                             enemyData.state = EnemyState::damaged;
                             enemyData.healthPoints -= 10;
@@ -536,7 +589,7 @@ void Game::collisionResponse(const SDL_FRect &rectA, const SDL_FRect &rectB,
                             if (enemyData.healthPoints <= 0)
                             {
                                 enemyData.state = EnemyState::dead;
-                                objB.texture = mResources->texEnemyDie;
+                                objB.texture = TextureId::EnemyDie;
                                 objB.currentAnimation =
                                     mResources->ANIM_ENEMY_DIE;
                             }
@@ -555,7 +608,7 @@ void Game::collisionResponse(const SDL_FRect &rectA, const SDL_FRect &rectB,
                     genericResponse();
                     objA.velocity *= 0;
                     objA.data.bullet.state = BulletState::colliding;
-                    objA.texture = mResources->texBulletHit;
+                    objA.texture = TextureId::BulletHit;
                     objA.currentAnimation = mResources->ANIM_BULLET_HIT;
                     break;
                 }
@@ -570,20 +623,16 @@ void Game::collisionResponse(const SDL_FRect &rectA, const SDL_FRect &rectB,
 
 void Game::checkCollision(GameObject &a, GameObject &b, float deltaTime)
 {
-    SDL_FRect rectA = {.x = a.position.x + a.collider.x,
-                       .y = a.position.y + a.collider.y,
-                       .w = a.collider.w,
-                       .h = a.collider.h};
-    SDL_FRect rectB = {.x = b.position.x + b.collider.x,
-                       .y = b.position.y + b.collider.y,
-                       .w = b.collider.w,
-                       .h = b.collider.h};
+    RectF rectA(a.position.x + a.collider.x, a.position.y + a.collider.y,
+                a.collider.w, a.collider.h);
+    RectF rectB(b.position.x + b.collider.x, b.position.y + b.collider.y,
+                b.collider.w, b.collider.h);
 
-    SDL_FRect rectC;
+    std::optional<RectF> rectC = SDL::getRectIntersectionFloat(rectA, rectB);
 
-    if (SDL_GetRectIntersectionFloat(&rectA, &rectB, &rectC))
+    if (rectC.has_value())
     {
-        collisionResponse(rectA, rectB, rectC, a, b, deltaTime);
+        collisionResponse(rectA, rectB, rectC.value(), a, b, deltaTime);
     }
 }
 } // namespace Game

@@ -1,4 +1,5 @@
 #include "map.h"
+#include "platform.h"
 
 namespace Game
 {
@@ -19,9 +20,9 @@ Map::Map(const int width, const int height, const int tileSize)
     // clang-format off
     short tempMap[MAP_ROWS][MAP_COLS] = {
         0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0,
-        0, 0, 4, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 0,
-        0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0,
+        0, 0, 4, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 0,
+        0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
     };
 
@@ -46,18 +47,15 @@ Map::Map(const int width, const int height, const int tileSize)
     memcpy(mBackgroundMap, tempBackgroundMap, sizeof(tempBackgroundMap));
 }
 
-GameObject Map::createObject(int row, int col, SDL_Texture *tex,
-                             ObjectType type)
+GameObject Map::createObject(int row, int col, TextureId tex, ObjectType type)
 {
     GameObject o;
     o.type = type;
     o.position =
         glm::vec2(col * mTileSize, mHeight - (MAP_ROWS - row) * mTileSize);
     o.texture = tex;
-    o.collider = {.x = 0,
-                  .y = 0.,
-                  .w = static_cast<float>(mTileSize),
-                  .h = static_cast<float>(mTileSize)}; // defaults
+    o.collider = RectF(0, 0, static_cast<float>(mTileSize),
+                       static_cast<float>(mTileSize)); // defaults
     return o;
 }
 
@@ -74,28 +72,27 @@ void Map::renderMap(std::shared_ptr<GameState> gs,
                 {
                     case 1: // Ground
                     {
-                        GameObject ground = createObject(r, c, res->texGround,
-                                                         ObjectType::level);
+                        GameObject ground = createObject(
+                            r, c, TextureId::Ground, ObjectType::level);
 
                         gs->layers[LAYER_IDX_LEVEL].push_back(ground);
                         break;
                     }
                     case 2: // Panel
                     {
-                        GameObject panel = createObject(r, c, res->texPanel,
+                        GameObject panel = createObject(r, c, TextureId::Panel,
                                                         ObjectType::level);
                         gs->layers[LAYER_IDX_LEVEL].push_back(panel);
                         break;
                     }
                     case 3: // Enemy
                     {
-                        GameObject enemy = createObject(r, c, res->texEnemy,
+                        GameObject enemy = createObject(r, c, TextureId::Enemy,
                                                         ObjectType::enemy);
                         enemy.data.enemy = EnemyData();
                         enemy.currentAnimation = res->ANIM_ENEMY;
                         enemy.animations = res->enemyAnims;
-                        enemy.collider =
-                            SDL_FRect{.x = 10, .y = 4, .w = 12, .h = 28};
+                        enemy.collider = RectF(10, 4, 12, 28);
                         enemy.maxSpeedX = 15;
                         enemy.dynamic = true;
                         gs->layers[LAYER_IDX_CHARACTER].push_back(enemy);
@@ -103,8 +100,8 @@ void Map::renderMap(std::shared_ptr<GameState> gs,
                     }
                     case 4: // Player
                     {
-                        GameObject player = createObject(r, c, res->texIdle,
-                                                         ObjectType::player);
+                        GameObject player = createObject(
+                            r, c, TextureId::PlayerIdle, ObjectType::player);
                         player.position =
                             glm::vec2(c * mTileSize,
                                       mHeight - (MAP_ROWS - r) * mTileSize);
@@ -114,7 +111,7 @@ void Map::renderMap(std::shared_ptr<GameState> gs,
                         player.acceleration = glm::vec2(300, 0);
                         player.maxSpeedX = 100;
                         player.dynamic = true;
-                        player.collider = {.x = 11, .y = 6, .w = 10, .h = 26};
+                        player.collider = RectF(11, 6, 10, 26);
                         gs->layers[LAYER_IDX_CHARACTER].push_back(player);
                         gs->playerIndex =
                             gs->layers[LAYER_IDX_CHARACTER].size() - 1;
@@ -122,14 +119,14 @@ void Map::renderMap(std::shared_ptr<GameState> gs,
                     }
                     case 5: // grass
                     {
-                        GameObject grass = createObject(r, c, res->texGrass,
+                        GameObject grass = createObject(r, c, TextureId::Grass,
                                                         ObjectType::level);
                         gs->foregroundTiles.push_back(grass);
                         break;
                     }
                     case 6: // brick
                     {
-                        GameObject brick = createObject(r, c, res->texBrick,
+                        GameObject brick = createObject(r, c, TextureId::Brick,
                                                         ObjectType::level);
                         gs->backgroundTiles.push_back(brick);
                         break;

@@ -4,6 +4,7 @@
 #include "gameObject.h"
 #include "gameState.h"
 #include "map.h"
+#include "platform.h"
 #include "resources.h"
 #include <memory>
 
@@ -13,6 +14,7 @@ constexpr int TILE_SIZE = 32;
 constexpr int SPRITE_SIZE = 32;
 constexpr int SCREEN_WIDTH = 640;
 constexpr int SCREEN_HEIGHT = 320;
+
 class Game
 {
   public:
@@ -40,11 +42,10 @@ class Game
 
     void iterate();
     void update(GameObject &obj, float deltaTime);
-    void handleEvent(SDL_Event event);
-    void handleKeyInput(SDL_Scancode key, bool keyDown, GameObject &obj);
-    void collisionResponse(const SDL_FRect &rectA, const SDL_FRect &rectB,
-                           SDL_FRect &rectC, GameObject &objA, GameObject &objB,
-                           float deltaTime);
+    void handleEvent(const Event &event);
+    void handleKeyInput(KeyInput key, bool keyDown, GameObject &obj);
+    void collisionResponse(const RectF &rectA, const RectF &rectB, RectF &rectC,
+                           GameObject &objA, GameObject &objB, float deltaTime);
     void checkCollision(GameObject &a, GameObject &b, float deltaTime);
 };
 } // namespace Game

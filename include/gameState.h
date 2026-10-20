@@ -2,6 +2,7 @@
 
 #include "gameObject.h"
 
+#include "platform.h"
 #include <array>
 #include <vector>
 
@@ -18,7 +19,7 @@ struct GameState
     std::vector<GameObject> bullets;
     float bg2Scroll, bg3Scroll, bg4Scroll;
     int playerIndex;
-    SDL_FRect mapViewPort;
+    RectF mapViewPort;
 
     bool debugMode;
     GameState()
@@ -30,7 +31,7 @@ struct GameState
 
     void initializeViewPort(float width, float height)
     {
-        mapViewPort = {.x = 0, .y = 0, .w = width, .h = height};
+        mapViewPort = RectF{0.0f, 0.0f, width, height};
     }
     GameObject &player() { return layers[LAYER_IDX_CHARACTER][playerIndex]; }
 };
